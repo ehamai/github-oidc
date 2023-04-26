@@ -9,6 +9,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  id-token: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -37,10 +40,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: 'Production'  # The federated identity credential "subject" should reference this name (eg "repo:ehamai/github-oidc:environment:Production")
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} 
+
       - name: Download artifact from build job
         uses: actions/download-artifact@v2
         with:
@@ -52,5 +62,4 @@ jobs:
         with:
           app-name: 'ehghawin00'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_06D63B629EB4427098FAD63A22B1E438 }}
           package: .
